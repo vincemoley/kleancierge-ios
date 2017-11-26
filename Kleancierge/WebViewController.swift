@@ -41,9 +41,9 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         
         // local - device
         // ip-address is found in advanced wifi section
-        //let url = "http://192.168.5.111:8080/login";
+        let url = "http://10.0.0.188:8080/login";
         // local - device - other wifi
-        let url = "http://10.0.0.5:8080/login";
+        //let url = "http://10.0.0.5:8080/login";
         
         // local - emulator
         //let url = "http://localhost:8080/login";
