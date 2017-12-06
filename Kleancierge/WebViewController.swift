@@ -37,13 +37,11 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         super.viewDidLoad()
         
         // production
-        //let url = "http://www.kleancierge.com/login";
+        let url = "https://www.kleancierge.com/login";
         
         // local - device
         // ip-address is found in advanced wifi section
-        let url = "http://10.0.0.188:8080/login";
-        // local - device - other wifi
-        //let url = "http://10.0.0.5:8080/login";
+        //let url = "http://172.20.10.3:8080/login";
         
         // local - emulator
         //let url = "http://localhost:8080/login";
@@ -64,14 +62,20 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         view.sendSubview(toBack: webView);
         
         if let url = URL(string: url) {
-            let request = URLRequest(url: url);
+            let request = URLRequest(url: url,
+                                     cachePolicy: URLRequest.CachePolicy.reloadIgnoringLocalCacheData,
+                                     timeoutInterval: 60.0)
             let session = URLSession.shared;
             
             let task = session.dataTask(with: request) { (data, response, error) in
                 if error == nil {
-                    self.webView.load(request);
+                    DispatchQueue.main.async {
+                        self.webView.load(request);
+                        
+                        print("webview load");
+                    }
                 } else {
-                    print("Error: \(error)");
+                    print("Error: \(String(describing: error))");
                 }
             }
             
@@ -91,11 +95,11 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     }
     
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-        print("webview started");
+        //print("webview started");
     }
     
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        print("webview loaded");
+        //print("webview loaded");
     }
     
     func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
@@ -118,6 +122,10 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     
     func handleDeviceToken(receivedDeviceToken deviceToken: String){
         webView.evaluateJavaScript("saveUserNotificationDeviceToken('" + deviceToken + "', 'ios');", completionHandler: nil);
+    }
+    
+    func appBecameActiveReloadWebView(){
+        self.webView.reload();
     }
     
     func requestContactsAccess(){
