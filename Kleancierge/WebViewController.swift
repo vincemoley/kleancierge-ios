@@ -103,7 +103,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     }
     
     func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
-        let alertController = UIAlertController(title: "There was an error!", message: message, preferredStyle: .alert);
+        let alertController = UIAlertController(title: "Kleancierge Alert", message: message, preferredStyle: .alert);
         
         alertController.addAction(UIAlertAction(title: "OK", style: .default, handler: { action in
             completionHandler()
