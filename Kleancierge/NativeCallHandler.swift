@@ -18,7 +18,6 @@ class NativeCallHandler: NSObject, WKScriptMessageHandler {
     let OPEN_CONTACTS: String = "opencontacts"
     let SAVE_LOCAL_NOTIFICATION = "savelocalnotfication"
     let REMOVE_LOCAL_NOTIFICATION = "removelocalnotification"
-    let CLEAR_SESSION = "clearsession"
     
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         if let messageBody: NSDictionary = message.body as? NSDictionary {
@@ -54,8 +53,6 @@ class NativeCallHandler: NSObject, WKScriptMessageHandler {
                         })
                 } else if type == REMOVE_LOCAL_NOTIFICATION {
                     LocalNotification.remove(cleaningReminderId: innerBody["cleaningReminderId"] as! Int)
-                } else if type == CLEAR_SESSION {
-                    delegate?.clearSession()
                 } else {
                     print("unable to handle type: " + type!);
                 }
