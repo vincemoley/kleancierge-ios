@@ -16,6 +16,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
+        UIApplication.shared.applicationIconBadgeNumber = 0;
         
         return true
     }
@@ -74,15 +75,26 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     }
     
     func application(_ application: UIApplication, didReceiveRemoteNotification data: [AnyHashable : Any]) {
-        let reminders = data[AnyHashable("reminders")] as? [String:String]
+        print("Push notification received: \(data)"); // debugging
+        // received for a newly scheduled cleaning
+        let cleaningReminders = data[AnyHashable("reminders")] as? NSDictionary
+        // received when a cleaning has been canceled
+        let cleaningReminderIds = data[AnyHashable("reminderIds")] as? [Int]
         
-        if reminders != nil {
-            reminders?.forEach({ (key, value) in
-                print("Reminder: \(key)=\(value)")
+        if cleaningReminders != nil {
+            let reminders = Reminder.parse(payload: cleaningReminders!)
+            
+            reminders.forEach({ reminder in
+                LocalNotification.save(cleaningReminderId: reminder.id,
+                                       notificationDate: reminder.date,
+                                       notificationTitle: reminder.title,
+                                       notificationBody: reminder.body);
+            })
+        } else if cleaningReminderIds != nil {
+            cleaningReminderIds!.forEach({ id in
+                LocalNotification.remove(cleaningReminderId: id)
             })
         }
-        
-        print("Push notification received: \(data)");
     }
     
     private func application(_ application: UIApplication, didRegister notificationSettings: UNNotificationSettings) {

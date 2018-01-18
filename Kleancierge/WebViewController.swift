@@ -16,18 +16,12 @@ import UserNotifications
 
 class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, NativeCallHandlerDelegate, CNContactPickerDelegate, URLSessionDelegate {
     
-    // production
-    //var url = "https://www.kleancierge.com"
-    
-    // local - device
-    // ip-address is found in advanced wifi section
-    var url = "http://192.168.5.233:8080"
-    
-    // local - emulator
-    //var url = "http://localhost:8080"
+    var ipAddress:String = ""
+    var url: String = ""
     
     var webView: WKWebView!
     var initLoad = false
+    var debugging = false
     
     var webConfig: WKWebViewConfiguration {
         get {
@@ -49,10 +43,20 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        //ipAddress = "www.kleancierge.com"
+        ipAddress = "10.0.0.5"
+            // local device
+        url = "http:/" + ipAddress + ":8080"
+            // production
+        //url = "https://" + ipAddress
+            // local - emulator
+        //url = "http://localhost:8080"
+        
         initLoad = true
+        
+        let statusBarHeight = UIApplication.shared.statusBarFrame.height
     
-        webView = WKWebView(frame: self.view.frame,
-                            configuration: webConfig);
+        webView = WKWebView(frame: CGRect(x: 0, y: statusBarHeight, width: view.bounds.maxX, height: view.bounds.maxY), configuration: webConfig)
         
         webView.allowsBackForwardNavigationGestures = true;
         webView.translatesAutoresizingMaskIntoConstraints = false;
@@ -72,22 +76,24 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
             
             for (key, cookieProperties) in cookieDictionary {
                 if let cookie = HTTPCookie(properties: cookieProperties as! [HTTPCookiePropertyKey : Any]){
-                    if key == "JSESSIONID" {
-                        cookieStr += "\(key)=\(cookie.value)"
+                    if cookie.domain == ipAddress {
+                        if key == "JSESSIONID" {
+                            cookieStr += "\(key)=\(cookie.value)"
+                        }
+                        
+                        storage.setCookie(cookie)
                     }
-                    
-                    storage.setCookie(cookie)
                 }
             }
             
             if cookieStr.contains("JSESSIONID"){
-                //print("Using User Detail Session Cookies") // debugging
-                
                 initialUrl += "/loggedIn"
                 
                 var request = URLRequest(url: URL(string: initialUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 0)
                 
-                //print("Using UserDefaults Cookie: \(cookieStr)") // debugging
+                if debugging {
+                    print("Using UserDefaults Cookie: \(cookieStr)")
+                }
                 
                 request.addValue(cookieStr, forHTTPHeaderField: "cookie")
                 
@@ -108,10 +114,12 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         let response = navigationResponse.response as! HTTPURLResponse
         let headerFields = response.allHeaderFields as! [String:String]
         
-        headerFields.forEach { (key, value) in
-            //print("Response Header: \(key)=\(value)") // debugging
+        if debugging {
+            headerFields.forEach { (key, value) in
+                print("Response Header: \(key)=\(value)")
+            }
+            print("")
         }
-        //print("") // debugging
         
         decisionHandler(WKNavigationResponsePolicy.allow);
     }
@@ -119,21 +127,26 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     func webView(_ webView: WKWebView,
                  decidePolicyFor navigationAction: WKNavigationAction,
                  decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        //print("Navigate to: \(webView.url!)") // debugging
+        if debugging {
+            print("Navigate to: \(webView.url!)")
+        }
         
         let storage = WKWebsiteDataStore.default().httpCookieStore
         var policy = WKNavigationActionPolicy.allow
         
-        storage.getAllCookies { (cookies) in
-            cookies.forEach({ (cookie) in
-                //print("Request cookie for \(webView.url!): \(cookie.name)=\(cookie.value)") // debugging
-            })
-            //print("") // debugging
+        if debugging {
+            storage.getAllCookies { (cookies) in
+                print("Request cookie for \(webView.url!):")
+                cookies.forEach({ (cookie) in
+                     //print("\(cookie.name)=\(cookie.value)")
+                    print("\(cookie)")
+                })
+                print("")
+            }
         }
         
+        // Store cookies in case app is terminated
         if webView.url!.absoluteString.contains("loggedIn") {
-            //print("Store cookies in case app is terminated") // debugging
-            
             let userDefaults = UserDefaults.standard
             var cookieDictionary = [String : AnyObject]()
             
@@ -150,8 +163,10 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
                 }
                 
                 cookies.forEach({ (cookie) in
-                    //print("\(cookie)") // debugging
-                    //print("Store cookie: \(cookie.name)=\(cookie.value)") // debugging
+                    if self.debugging {
+                        print("Store cookie: \(cookie)")
+                        //print("Store cookie: \(cookie.name)=\(cookie.value)")
+                    }
                     cookieDictionary[cookie.name] = cookie.properties as AnyObject?
                 })
                 
@@ -160,7 +175,9 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
                 self.initLoad = false
             }
         } else if webView.url!.absoluteString.contains("login?is") {
-            //print("Invalid Session - Clear User Detail Cookie Cache") // debugging
+            if debugging {
+                print("Invalid Session - Clear User Detail Cookie Cache")
+            }
             
             let userDefaults = UserDefaults.standard
             
@@ -172,19 +189,6 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
-    }
-    
-    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-        print(error.localizedDescription);
-    }
-    
-    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-        //print("webview started") // debugging
-    }
-    
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        //print("webview loaded") // debugging
     }
     
     func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
@@ -201,8 +205,6 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         let appDelegate = UIApplication.shared.delegate as! AppDelegate;
         
         appDelegate.registerForRemoteNotification();
-        
-        //print("App Loaded.  Prompt to accept push notfications") // debugging
     }
     
     func handleDeviceToken(receivedDeviceToken deviceToken: String){
@@ -228,7 +230,11 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
                 if success {
                     self.openContacts();
                 } else {
-                    print("Not Authorized");
+                    let alertController = UIAlertController(title: "Kleancierge Alert", message: "Unable to Access your Contacts", preferredStyle: .alert);
+                    
+                    alertController.addAction(UIAlertAction(title: "OK", style: .default, handler: nil));
+                    
+                    self.present(alertController, animated: true, completion: nil);
                 }
             })
         } else if authStatus == CNAuthorizationStatus.authorized {
@@ -255,8 +261,6 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
             let contact = item as CNContact;
             var email: String = ""
             var mobile: String = ""
-            
-            //print(contact);
             
             if !contact.emailAddresses.isEmpty {
                 let emailObject = contact.emailAddresses[0] as CNLabeledValue;

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AC20D9A42010E765002EB337 /* Reminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC20D9A32010E765002EB337 /* Reminder.swift */; };
 		AC41A6281F96345C0097C696 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC41A6271F96345C0097C696 /* AppDelegate.swift */; };
 		AC41A62D1F96345C0097C696 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AC41A62B1F96345C0097C696 /* Main.storyboard */; };
 		AC41A62F1F96345C0097C696 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AC41A62E1F96345C0097C696 /* Assets.xcassets */; };
@@ -21,6 +22,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		AC20D9A32010E765002EB337 /* Reminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reminder.swift; sourceTree = "<group>"; };
 		AC41A6241F96345C0097C696 /* Kleancierge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kleancierge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AC41A6271F96345C0097C696 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		AC41A62C1F96345C0097C696 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
@@ -81,6 +83,7 @@
 				AC41A6401F9638180097C696 /* NativeCallHandlerDelegate.swift */,
 				ACDE56541FB60C1B000C22FF /* Customer.swift */,
 				ACFF39501FF5267A004E2611 /* LocalNotification.swift */,
+				AC20D9A32010E765002EB337 /* Reminder.swift */,
 			);
 			path = Kleancierge;
 			sourceTree = "<group>";
@@ -177,6 +180,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AC41A63D1F9637670097C696 /* WebViewController.swift in Sources */,
+				AC20D9A42010E765002EB337 /* Reminder.swift in Sources */,
 				ACDE56551FB60C1B000C22FF /* Customer.swift in Sources */,
 				ACFF39511FF5267A004E2611 /* LocalNotification.swift in Sources */,
 				AC41A6281F96345C0097C696 /* AppDelegate.swift in Sources */,

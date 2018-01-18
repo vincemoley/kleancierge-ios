@@ -22,7 +22,7 @@ class NativeCallHandler: NSObject, WKScriptMessageHandler {
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         if let messageBody: NSDictionary = message.body as? NSDictionary {
             if let innerBody: NSDictionary = messageBody["body"] as? NSDictionary {
-                print(innerBody);
+                //print(innerBody); // debugging
                 
                 let type = innerBody["type"] as? String;
                 
@@ -32,24 +32,14 @@ class NativeCallHandler: NSObject, WKScriptMessageHandler {
                     delegate?.requestContactsAccess();
                 } else if type == SAVE_LOCAL_NOTIFICATION {
                     let cleaningReminders = innerBody.object(forKey: "reminders") as! NSDictionary
-                    let title = "Cleaning Appointment Reminder"
                     
-                    cleaningReminders.allKeys.forEach({ key in
-                        let value = cleaningReminders.object(forKey: key) as! NSDictionary
-                        let cleaningReminderId = Int("\(key)")
-                        let dateStr = value["date"] as! String;
-                        let qty = value["qty"] as! Int;
-                        let units = value["units"] as! String;
-                        let body = "Your cleaning appointment is in \(qty) \(units)"
-                        
-                        let df = DateFormatter()
-                        
-                        df.dateFormat = "YYYY-MM-dd HH:mm"
-                        
-                        LocalNotification.save(cleaningReminderId: cleaningReminderId!,
-                                                 notificationDate: df.date(from: dateStr)!,
-                                                 notificationTitle: title,
-                                                 notificationBody: body);
+                    let reminders = Reminder.parse(payload: cleaningReminders)
+                    
+                    reminders.forEach({ reminder in
+                        LocalNotification.save(cleaningReminderId: reminder.id,
+                                                 notificationDate: reminder.date,
+                                                 notificationTitle: reminder.title,
+                                                 notificationBody: reminder.body);
                         })
                 } else if type == REMOVE_LOCAL_NOTIFICATION {
                     LocalNotification.remove(cleaningReminderId: innerBody["cleaningReminderId"] as! Int)
