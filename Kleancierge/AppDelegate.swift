@@ -74,15 +74,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     }
     
     func application(_ application: UIApplication, didReceiveRemoteNotification data: [AnyHashable : Any]) {
-        let reminders = data[AnyHashable("reminders")] as? NSArray
+        let reminders = data[AnyHashable("reminders")] as? [String:String]
         
         if reminders != nil {
-            for reminder in reminders! {
-                print("Reminder: \(reminder)")
-            }
+            reminders?.forEach({ (key, value) in
+                print("Reminder: \(key)=\(value)")
+            })
         }
         
-        print("2. Push notification received: \(data)");
+        print("Push notification received: \(data)");
     }
     
     private func application(_ application: UIApplication, didRegister notificationSettings: UNNotificationSettings) {

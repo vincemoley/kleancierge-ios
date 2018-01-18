@@ -16,14 +16,14 @@ class NativeCallHandler: NSObject, WKScriptMessageHandler {
     
     let APPLOADED: String = "apploaded"
     let OPEN_CONTACTS: String = "opencontacts"
-    let CREATE_LOCAL_NOTIFICATION = "createlocalnotfication"
-    let UPDATE_LOCAL_NOTIFICATION = "updatelocalnotfication"
+    let SAVE_LOCAL_NOTIFICATION = "savelocalnotfication"
     let REMOVE_LOCAL_NOTIFICATION = "removelocalnotification"
+    let CLEAR_SESSION = "clearsession"
     
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         if let messageBody: NSDictionary = message.body as? NSDictionary {
             if let innerBody: NSDictionary = messageBody["body"] as? NSDictionary {
-                //print(innerBody);
+                print(innerBody);
                 
                 let type = innerBody["type"] as? String;
                 
@@ -31,33 +31,31 @@ class NativeCallHandler: NSObject, WKScriptMessageHandler {
                     delegate?.appLoaded();
                 } else if type == OPEN_CONTACTS {
                     delegate?.requestContactsAccess();
-                } else if type == CREATE_LOCAL_NOTIFICATION || type == UPDATE_LOCAL_NOTIFICATION {
-                    let cleaningReminderId = innerBody["cleaningReminderId"] as! Int;
-                    let dateStr = innerBody["date"] as! String;
-                    let title = innerBody["title"] as! String;
-                    let body = innerBody["body"] as! String;
+                } else if type == SAVE_LOCAL_NOTIFICATION {
+                    let cleaningReminders = innerBody.object(forKey: "reminders") as! NSDictionary
+                    let title = "Cleaning Appointment Reminder"
                     
-                    let df = DateFormatter()
-                    
-                    df.dateFormat = "YYYY-MM-dd HH:mm"
-                    
-                    if type == CREATE_LOCAL_NOTIFICATION {
-                        LocalNotification.create(cleaningReminderId: cleaningReminderId,
+                    cleaningReminders.allKeys.forEach({ key in
+                        let value = cleaningReminders.object(forKey: key) as! NSDictionary
+                        let cleaningReminderId = Int("\(key)")
+                        let dateStr = value["date"] as! String;
+                        let qty = value["qty"] as! Int;
+                        let units = value["units"] as! String;
+                        let body = "Your cleaning appointment is in \(qty) \(units)"
+                        
+                        let df = DateFormatter()
+                        
+                        df.dateFormat = "YYYY-MM-dd HH:mm"
+                        
+                        LocalNotification.save(cleaningReminderId: cleaningReminderId!,
                                                  notificationDate: df.date(from: dateStr)!,
                                                  notificationTitle: title,
                                                  notificationBody: body);
-                    } else {
-                        LocalNotification.update(cleaningReminderId: cleaningReminderId,
-                                                 notificationDate: df.date(from: dateStr)!,
-                                                 notificationTitle: title,
-                                                 notificationBody: body);
-                    }
+                        })
                 } else if type == REMOVE_LOCAL_NOTIFICATION {
-                    let cleaningReminderIds = innerBody["cleaningReminderId"] as! NSMutableArray;
-                    
-                    for cri in cleaningReminderIds {
-                        LocalNotification.remove(cleaningReminderId: cri as! Int)
-                    }
+                    LocalNotification.remove(cleaningReminderId: innerBody["cleaningReminderId"] as! Int)
+                } else if type == CLEAR_SESSION {
+                    delegate?.clearSession()
                 } else {
                     print("unable to handle type: " + type!);
                 }

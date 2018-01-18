@@ -10,7 +10,7 @@ import UIKit
 import UserNotifications
 
 class LocalNotification: NSObject {
-    static func update(cleaningReminderId identifier: Int,
+    static func save(cleaningReminderId identifier: Int,
                        notificationDate date: Date,
                        notificationTitle title: String,
                        notificationBody body: String){
@@ -24,7 +24,7 @@ class LocalNotification: NSObject {
         center.removePendingNotificationRequests(withIdentifiers: [String(identifier)]);
     }
     
-    static func create(cleaningReminderId identifier: Int,
+    static private func create(cleaningReminderId identifier: Int,
                        notificationDate date: Date,
                        notificationTitle title: String,
                        notificationBody body: String){

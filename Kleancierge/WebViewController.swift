@@ -16,7 +16,18 @@ import UserNotifications
 
 class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, NativeCallHandlerDelegate, CNContactPickerDelegate, URLSessionDelegate {
     
+    // production
+    //var url = "https://www.kleancierge.com"
+    
+    // local - device
+    // ip-address is found in advanced wifi section
+    var url = "http://192.168.5.233:8080"
+    
+    // local - emulator
+    //var url = "http://localhost:8080"
+    
     var webView: WKWebView!
+    var initLoad = false
     
     var webConfig: WKWebViewConfiguration {
         get {
@@ -38,17 +49,8 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // production
-        var url = "https://www.kleancierge.com"
-        
-        // local - device
-        // ip-address is found in advanced wifi section
-        //var url = "http://192.168.5.211:8080"
-        
-        // local - emulator
-        //var url = "http://localhost:8080"
-        
-        
+        initLoad = true
+    
         webView = WKWebView(frame: self.view.frame,
                             configuration: webConfig);
         
@@ -63,6 +65,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         
         let storage = WKWebsiteDataStore.default().httpCookieStore
         let userDefaults = UserDefaults.standard
+        var initialUrl = url
         
         if let cookieDictionary = userDefaults.dictionary(forKey: "cookieCache") {
             var cookieStr = "";
@@ -80,9 +83,9 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
             if cookieStr.contains("JSESSIONID"){
                 //print("Using User Detail Session Cookies") // debugging
                 
-                url += "/loggedIn"
+                initialUrl += "/loggedIn"
                 
-                var request = URLRequest(url: URL(string: url)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 0)
+                var request = URLRequest(url: URL(string: initialUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 0)
                 
                 //print("Using UserDefaults Cookie: \(cookieStr)") // debugging
                 
@@ -90,14 +93,14 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
                 
                 self.webView.load(request)
             } else {
-                url += "/login"
+                initialUrl += "/login"
                 
-                self.webView.load(URLRequest(url: URL(string: url)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 0))
+                self.webView.load(URLRequest(url: URL(string: initialUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 0))
             }
         } else {
-            url += "/login"
+            initialUrl += "/login"
             
-            self.webView.load(URLRequest(url: URL(string: url)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 0))
+            self.webView.load(URLRequest(url: URL(string: initialUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 0))
         }
     }
     
@@ -113,8 +116,13 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         decisionHandler(WKNavigationResponsePolicy.allow);
     }
     
-    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+    func webView(_ webView: WKWebView,
+                 decidePolicyFor navigationAction: WKNavigationAction,
+                 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        //print("Navigate to: \(webView.url!)") // debugging
+        
         let storage = WKWebsiteDataStore.default().httpCookieStore
+        var policy = WKNavigationActionPolicy.allow
         
         storage.getAllCookies { (cookies) in
             cookies.forEach({ (cookie) in
@@ -130,6 +138,17 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
             var cookieDictionary = [String : AnyObject]()
             
             storage.getAllCookies { (cookies) in
+                if self.initLoad && cookies.count == 0 {
+                    self.clearSession()
+                    
+                    policy = WKNavigationActionPolicy.cancel
+                    
+                    let loginUrl = self.url + "/login"
+                    let request = URLRequest(url: URL(string: loginUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 0)
+                    
+                    webView.load(request)
+                }
+                
                 cookies.forEach({ (cookie) in
                     //print("\(cookie)") // debugging
                     //print("Store cookie: \(cookie.name)=\(cookie.value)") // debugging
@@ -137,6 +156,8 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
                 })
                 
                 userDefaults.set(cookieDictionary, forKey: "cookieCache")
+                
+                self.initLoad = false
             }
         } else if webView.url!.absoluteString.contains("login?is") {
             //print("Invalid Session - Clear User Detail Cookie Cache") // debugging
@@ -146,7 +167,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
             userDefaults.removeObject(forKey: "cookieCache")
         }
         
-        decisionHandler(WKNavigationActionPolicy.allow)
+        decisionHandler(policy)
     }
     
     override func didReceiveMemoryWarning() {
@@ -184,19 +205,16 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         //print("App Loaded.  Prompt to accept push notfications") // debugging
     }
     
-    func createLocalNotification(cleaningReminderId identifier: Int,
-                                 notificationDate date: Date,
-                                 notificationTitle title: String,
-                                 notificationBody body: String) {
-        
-    }
-    
     func handleDeviceToken(receivedDeviceToken deviceToken: String){
         webView.evaluateJavaScript("saveUserNotificationDeviceToken('" + deviceToken + "', 'ios');", completionHandler: nil);
     }
     
     func appBecameActiveReloadWebView(){
         self.webView.reload();
+    }
+    
+    func clearSession() {
+        UserDefaults.standard.removeObject(forKey: "cookieCache")
     }
     
     func requestContactsAccess(){
