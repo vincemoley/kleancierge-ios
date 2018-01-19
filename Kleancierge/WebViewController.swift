@@ -43,12 +43,12 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        //ipAddress = "www.kleancierge.com"
-        ipAddress = "10.0.0.5"
+        ipAddress = "www.kleancierge.com"
+        //ipAddress = "10.0.0.5"
             // local device
-        url = "http:/" + ipAddress + ":8080"
+        //url = "http:/" + ipAddress + ":8080"
             // production
-        //url = "https://" + ipAddress
+        url = "https://" + ipAddress
             // local - emulator
         //url = "http://localhost:8080"
         
