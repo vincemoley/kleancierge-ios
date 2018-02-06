@@ -11,17 +11,24 @@ import UIKit
 class Reminder: NSObject {
     var id = 0
     var date: Date
+    var dateOfCleaning: Date
     var qty = 0
     var units = ""
     var body = ""
     let title = "Cleaning Appointment Reminder"
     
-    init(reminderId id: Int, dateOfReminder date: Date, qtyOfUnits qty: Int, unitsUntilCleaning units: String) {
+    init(reminderId id: Int, dateTimeOfReminder reminderDate: Date, dateTimeOfCleaning dateOfCleaning: Date, qtyOfUnits qty: Int, unitsUntilCleaning units: String) {
         self.id = id
-        self.date = date
+        self.date = reminderDate
+        self.dateOfCleaning = dateOfCleaning
         self.qty = qty
         self.units = units
-        self.body = "Your cleaning appointment is in \(qty) \(units)"
+        
+        let df = DateFormatter()
+        
+        df.dateFormat = "MM/dd/YYYY @ hh:mm a"
+        
+        self.body = "Your cleaning appointment for \(df.string(from: self.dateOfCleaning)) is in \(qty) \(units)"
     }
     
     public static func parse(payload cleaningReminders: NSDictionary) -> [Reminder]{
@@ -30,7 +37,8 @@ class Reminder: NSObject {
         cleaningReminders.allKeys.forEach({ key in
             let value = cleaningReminders.object(forKey: key) as! NSDictionary
             let cleaningReminderId = Int("\(key)")!
-            let dateStr = value["date"] as! String;
+            let reminderDateStr = value["date"] as! String;
+            let dateOfCleaningStr = value["cleaningDateTime"] as! String;
             let qty = value["qty"] as! String;
             let units = value["units"] as! String;
             
@@ -39,7 +47,8 @@ class Reminder: NSObject {
             df.dateFormat = "YYYY-MM-dd HH:mm"
             
             reminders.append(Reminder(reminderId: cleaningReminderId,
-                                      dateOfReminder: df.date(from: dateStr)!,
+                                      dateTimeOfReminder: df.date(from: reminderDateStr)!,
+                                      dateTimeOfCleaning: df.date(from: dateOfCleaningStr)!,
                                       qtyOfUnits: Int(qty)!,
                                       unitsUntilCleaning: units))
         })

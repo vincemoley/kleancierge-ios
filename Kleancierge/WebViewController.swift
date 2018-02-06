@@ -43,13 +43,18 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        ipAddress = "www.kleancierge.com"
-        //ipAddress = "10.0.0.5"
-            // local device
+        let refreshControl = UIRefreshControl()
+        refreshControl.addTarget(self, action: #selector(didPullToRefresh), for: .valueChanged)
+        
+        // --- local device --- //
+        //ipAddress = "192.168.5.237"
         //url = "http:/" + ipAddress + ":8080"
-            // production
+        
+        // --- production --- //
+        ipAddress = "www.kleancierge.com"
         url = "https://" + ipAddress
-            // local - emulator
+        
+        // --- local - emulator --- //
         //url = "http://localhost:8080"
         
         initLoad = true
@@ -61,27 +66,24 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         webView.allowsBackForwardNavigationGestures = true;
         webView.translatesAutoresizingMaskIntoConstraints = false;
         
-        webView.uiDelegate = self;
-        webView.navigationDelegate = self;
+        webView.uiDelegate = self
+        webView.navigationDelegate = self
+        webView.scrollView.addSubview(refreshControl)
         
         view.addSubview(webView);
         view.sendSubview(toBack: webView);
         
-        let storage = WKWebsiteDataStore.default().httpCookieStore
-        let userDefaults = UserDefaults.standard
         var initialUrl = url
         
-        if let cookieDictionary = userDefaults.dictionary(forKey: "cookieCache") {
+        if let cookieDictionary = UserDefaults.standard.dictionary(forKey: "cookieCache") {
             var cookieStr = "";
             
             for (key, cookieProperties) in cookieDictionary {
                 if let cookie = HTTPCookie(properties: cookieProperties as! [HTTPCookiePropertyKey : Any]){
-                    if cookie.domain == ipAddress {
-                        if key == "JSESSIONID" {
-                            cookieStr += "\(key)=\(cookie.value)"
-                        }
+                    if cookie.domain == ipAddress && key == "JSESSIONID" {
+                        cookieStr += "\(key)=\(cookie.value)"
                         
-                        storage.setCookie(cookie)
+                        WKWebsiteDataStore.default().httpCookieStore.setCookie(cookie, completionHandler: nil)
                     }
                 }
             }
@@ -110,85 +112,34 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         }
     }
     
+    func webView(_ webView: WKWebView, didReceiveServerRedirectForProvisionalNavigation navigation: WKNavigation!) {
+        print("Received redirect to: \(webView.url!)")
+    }
+    
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        print("Error Loading WebView: \(error)")
+    }
+    
     func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
-        let response = navigationResponse.response as! HTTPURLResponse
-        let headerFields = response.allHeaderFields as! [String:String]
+        var cookieDictionary = [String : AnyObject]()
         
         if debugging {
-            headerFields.forEach { (key, value) in
-                print("Response Header: \(key)=\(value)")
-            }
-            print("")
+            let response = navigationResponse.response as! HTTPURLResponse
+            print("Response Code: \(response.statusCode)")
+        }
+        
+        WKWebsiteDataStore.default().httpCookieStore.getAllCookies { (cookies) in
+            cookies.forEach({ (cookie) in
+                if self.debugging {
+                    print("Response Cookie: \(cookie)")
+                }
+                cookieDictionary[cookie.name] = cookie.properties as AnyObject?
+            })
+            
+            UserDefaults.standard.set(cookieDictionary, forKey: "cookieCache")
         }
         
         decisionHandler(WKNavigationResponsePolicy.allow);
-    }
-    
-    func webView(_ webView: WKWebView,
-                 decidePolicyFor navigationAction: WKNavigationAction,
-                 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        if debugging {
-            print("Navigate to: \(webView.url!)")
-        }
-        
-        let storage = WKWebsiteDataStore.default().httpCookieStore
-        var policy = WKNavigationActionPolicy.allow
-        
-        if debugging {
-            storage.getAllCookies { (cookies) in
-                print("Request cookie for \(webView.url!):")
-                cookies.forEach({ (cookie) in
-                     //print("\(cookie.name)=\(cookie.value)")
-                    print("\(cookie)")
-                })
-                print("")
-            }
-        }
-        
-        // Store cookies in case app is terminated
-        if webView.url!.absoluteString.contains("loggedIn") {
-            let userDefaults = UserDefaults.standard
-            var cookieDictionary = [String : AnyObject]()
-            
-            storage.getAllCookies { (cookies) in
-                if self.initLoad && cookies.count == 0 {
-                    self.clearSession()
-                    
-                    policy = WKNavigationActionPolicy.cancel
-                    
-                    let loginUrl = self.url + "/login"
-                    let request = URLRequest(url: URL(string: loginUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 0)
-                    
-                    webView.load(request)
-                }
-                
-                cookies.forEach({ (cookie) in
-                    if self.debugging {
-                        print("Store cookie: \(cookie)")
-                        //print("Store cookie: \(cookie.name)=\(cookie.value)")
-                    }
-                    cookieDictionary[cookie.name] = cookie.properties as AnyObject?
-                })
-                
-                userDefaults.set(cookieDictionary, forKey: "cookieCache")
-                
-                self.initLoad = false
-            }
-        } else if webView.url!.absoluteString.contains("login?is") {
-            if debugging {
-                print("Invalid Session - Clear User Detail Cookie Cache")
-            }
-            
-            let userDefaults = UserDefaults.standard
-            
-            userDefaults.removeObject(forKey: "cookieCache")
-        }
-        
-        decisionHandler(policy)
-    }
-    
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
     }
     
     func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
@@ -201,6 +152,20 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         self.present(alertController, animated: true, completion: nil);
     }
     
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+    }
+    
+    @objc func didPullToRefresh(sender: UIRefreshControl){
+        if debugging {
+            let webViewUrl = webView.url?.absoluteString ?? "NO WEBVIEW URL"
+            print("Refresh: \(webViewUrl)")
+        }
+        
+        webView.reload()
+        sender.endRefreshing()
+    }
+    
     func appLoaded() {
         let appDelegate = UIApplication.shared.delegate as! AppDelegate;
         
@@ -211,11 +176,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         webView.evaluateJavaScript("saveUserNotificationDeviceToken('" + deviceToken + "', 'ios');", completionHandler: nil);
     }
     
-    func appBecameActiveReloadWebView(){
-        self.webView.reload();
-    }
-    
-    func clearSession() {
+    func clearSessionFromUserDefaults() {
         UserDefaults.standard.removeObject(forKey: "cookieCache")
     }
     
@@ -293,5 +254,15 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         let jsonString = String(data: data, encoding: String.Encoding.utf8)
         
         webView.evaluateJavaScript("saveCustomersFromIPhone(" + jsonString! + ", 'ios');", completionHandler: nil);
+    }
+    
+    public func reloadIfOnLogin(){
+        if webView.url!.absoluteString.contains("login") {
+            if debugging {
+                print("Reloading webview b/c on login page")
+            }
+            
+            webView.reload()
+        }
     }
 }
