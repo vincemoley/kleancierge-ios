@@ -47,11 +47,11 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         refreshControl.addTarget(self, action: #selector(didPullToRefresh), for: .valueChanged)
         
         // --- local device --- //
-        //ipAddress = "192.168.5.237"
-        //url = "http:/" + ipAddress + ":8080"
+        //ipAddress = "192.168.5.223"
+        //url = "http://" + ipAddress + ":8080"
         
         // --- production --- //
-        ipAddress = "www.kleancierge.com"
+        ipAddress = "app.kleancierge.com"
         url = "https://" + ipAddress
         
         // --- local - emulator --- //
@@ -80,7 +80,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
             
             for (key, cookieProperties) in cookieDictionary {
                 if let cookie = HTTPCookie(properties: cookieProperties as! [HTTPCookiePropertyKey : Any]){
-                    if cookie.domain == ipAddress && key == "JSESSIONID" {
+                    if cookie.domain == ipAddress && key == "SESSION" {
                         cookieStr += "\(key)=\(cookie.value)"
                         
                         WKWebsiteDataStore.default().httpCookieStore.setCookie(cookie, completionHandler: nil)
@@ -88,7 +88,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
                 }
             }
             
-            if cookieStr.contains("JSESSIONID"){
+            if cookieStr.contains("SESSION"){
                 initialUrl += "/loggedIn"
                 
                 var request = URLRequest(url: URL(string: initialUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 0)
@@ -174,10 +174,6 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     
     func handleDeviceToken(receivedDeviceToken deviceToken: String){
         webView.evaluateJavaScript("saveUserNotificationDeviceToken('" + deviceToken + "', 'ios');", completionHandler: nil);
-    }
-    
-    func clearSessionFromUserDefaults() {
-        UserDefaults.standard.removeObject(forKey: "cookieCache")
     }
     
     func requestContactsAccess(){
