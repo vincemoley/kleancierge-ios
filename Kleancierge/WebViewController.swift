@@ -47,7 +47,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         refreshControl.addTarget(self, action: #selector(didPullToRefresh), for: .valueChanged)
         
         // --- local device --- //
-        //ipAddress = "192.168.5.223"
+        //ipAddress = "10.0.0.5"
         //url = "http://" + ipAddress + ":8080"
         
         // --- production --- //
@@ -75,6 +75,8 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         
         var initialUrl = url
         
+        bustCache()
+        
         if let cookieDictionary = UserDefaults.standard.dictionary(forKey: "cookieCache") {
             var cookieStr = "";
             
@@ -91,7 +93,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
             if cookieStr.contains("SESSION"){
                 initialUrl += "/loggedIn"
                 
-                var request = URLRequest(url: URL(string: initialUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 0)
+                var request = URLRequest(url: URL(string: initialUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10)
                 
                 if debugging {
                     print("Using UserDefaults Cookie: \(cookieStr)")
@@ -103,12 +105,12 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
             } else {
                 initialUrl += "/login"
                 
-                self.webView.load(URLRequest(url: URL(string: initialUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 0))
+                self.webView.load(URLRequest(url: URL(string: initialUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10))
             }
         } else {
             initialUrl += "/login"
             
-            self.webView.load(URLRequest(url: URL(string: initialUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 0))
+            self.webView.load(URLRequest(url: URL(string: initialUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10))
         }
     }
     
@@ -162,8 +164,20 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
             print("Refresh: \(webViewUrl)")
         }
         
+        bustCache()
+        
         webView.reload()
+        
         sender.endRefreshing()
+    }
+    
+    func bustCache() {
+        let cacheTypes = Set<String>([WKWebsiteDataTypeDiskCache, WKWebsiteDataTypeMemoryCache])
+        let store = WKWebsiteDataStore.default()
+        
+        store.fetchDataRecords(ofTypes: cacheTypes) { (record) in
+            store.removeData(ofTypes: cacheTypes, for: record){ }
+        }
     }
     
     func appLoaded() {
