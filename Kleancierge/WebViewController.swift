@@ -47,7 +47,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         refreshControl.addTarget(self, action: #selector(didPullToRefresh), for: .valueChanged)
         
         // --- local device --- //
-        //ipAddress = "10.0.0.5"
+        //ipAddress = "192.168.5.237"
         //url = "http://" + ipAddress + ":8080"
         
         // --- production --- //
@@ -152,6 +152,20 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         }));
         
         self.present(alertController, animated: true, completion: nil);
+    }
+    
+    func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (Bool) -> Void) {
+        let alertController = UIAlertController(title: nil, message: message, preferredStyle: .actionSheet)
+        
+        alertController.addAction(UIAlertAction(title: "OK", style: .default, handler: { (action) in
+            completionHandler(true)
+        }))
+        
+        alertController.addAction(UIAlertAction(title: "Cancel", style: .default, handler: { (action) in
+            completionHandler(false)
+        }))
+        
+        present(alertController, animated: true, completion: nil)
     }
     
     override func didReceiveMemoryWarning() {
@@ -267,9 +281,12 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     }
     
     public func reloadIfOnLogin(){
-        if webView.url!.absoluteString.contains("login") {
+        let currentUrl = webView.url!.absoluteString
+        let homeUrl = url + "/loggedIn#/"
+        
+        if currentUrl.contains("login") || currentUrl == homeUrl  {
             if debugging {
-                print("Reloading webview b/c on login page")
+                print("Reloading webview b/c on login or home page")
             }
             
             webView.reload()
