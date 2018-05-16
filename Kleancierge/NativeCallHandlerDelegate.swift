@@ -14,4 +14,7 @@ public protocol NativeCallHandlerDelegate : NSObjectProtocol {
     
     @available(iOS 8.0, *)
     func requestContactsAccess();
+    
+    @available(iOS 8.0, *)
+    func updateCurrentLocation(url currentLocation: String);
 }

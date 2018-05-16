@@ -18,6 +18,11 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     
     var ipAddress:String = ""
     var url: String = ""
+    let LOGIN: String = "/login"
+    let LOGGED_IN: String = "/loggedIn#/"
+    let SESSION_KEY: String = "SESSION"
+    let COOKIE_CACHE_KEY: String = "cookieCache"
+    let CURRENT_LOCATION_KEY: String = "currentLocation"
     
     var webView: WKWebView!
     var initLoad = false
@@ -29,11 +34,11 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
             let userController = WKUserContentController()
             let nativeCallHandler = NativeCallHandler()
             
-            nativeCallHandler.delegate = self;
+            nativeCallHandler.delegate = self
             
-            userController.add(nativeCallHandler, name: "onNativeCalled");
+            userController.add(nativeCallHandler, name: "onNativeCalled")
             
-            webCfg.userContentController = userController;
+            webCfg.userContentController = userController
             webCfg.websiteDataStore = WKWebsiteDataStore.default()
             
             return webCfg;
@@ -47,7 +52,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         refreshControl.addTarget(self, action: #selector(didPullToRefresh), for: .valueChanged)
         
         // --- local device --- //
-        //ipAddress = "192.168.5.237"
+        //ipAddress = "192.168.5.235"
         //url = "http://" + ipAddress + ":8080"
         
         // --- production --- //
@@ -77,12 +82,12 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         
         bustCache()
         
-        if let cookieDictionary = UserDefaults.standard.dictionary(forKey: "cookieCache") {
+        if let cookieDictionary = UserDefaults.standard.dictionary(forKey: COOKIE_CACHE_KEY) {
             var cookieStr = "";
             
             for (key, cookieProperties) in cookieDictionary {
                 if let cookie = HTTPCookie(properties: cookieProperties as! [HTTPCookiePropertyKey : Any]){
-                    if cookie.domain == ipAddress && key == "SESSION" {
+                    if cookie.domain == ipAddress && key == SESSION_KEY {
                         cookieStr += "\(key)=\(cookie.value)"
                         
                         WKWebsiteDataStore.default().httpCookieStore.setCookie(cookie, completionHandler: nil)
@@ -90,8 +95,14 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
                 }
             }
             
-            if cookieStr.contains("SESSION"){
-                initialUrl += "/loggedIn"
+            let currentLocation = UserDefaults.standard.value(forKey: CURRENT_LOCATION_KEY) as? String
+            
+            if cookieStr.contains(SESSION_KEY){
+                if currentLocation != nil {
+                    initialUrl = currentLocation!
+                } else {
+                    initialUrl += LOGGED_IN
+                }
                 
                 var request = URLRequest(url: URL(string: initialUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10)
                 
@@ -103,12 +114,12 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
                 
                 self.webView.load(request)
             } else {
-                initialUrl += "/login"
+                initialUrl += LOGIN
                 
                 self.webView.load(URLRequest(url: URL(string: initialUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10))
             }
         } else {
-            initialUrl += "/login"
+            initialUrl += LOGIN
             
             self.webView.load(URLRequest(url: URL(string: initialUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10))
         }
@@ -125,8 +136,12 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
         var cookieDictionary = [String : AnyObject]()
         
+        let response = navigationResponse.response as! HTTPURLResponse
+        
+        UserDefaults.standard.set(response.url?.absoluteString, forKey: CURRENT_LOCATION_KEY)
+        
         if debugging {
-            let response = navigationResponse.response as! HTTPURLResponse
+            print("Response Code: \(String(describing: response.url?.absoluteString))")
             print("Response Code: \(response.statusCode)")
         }
         
@@ -138,7 +153,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
                 cookieDictionary[cookie.name] = cookie.properties as AnyObject?
             })
             
-            UserDefaults.standard.set(cookieDictionary, forKey: "cookieCache")
+            UserDefaults.standard.set(cookieDictionary, forKey: self.COOKIE_CACHE_KEY)
         }
         
         decisionHandler(WKNavigationResponsePolicy.allow);
@@ -191,6 +206,13 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         
         store.fetchDataRecords(ofTypes: cacheTypes) { (record) in
             store.removeData(ofTypes: cacheTypes, for: record){ }
+        }
+        
+        if false {
+            print("!!! REMOVING ALL PERSISTENT USER INFO, INCLUDING SESSION & CURRENT LOCATION !!!")
+            
+            UserDefaults.standard.removeObject(forKey: COOKIE_CACHE_KEY)
+            UserDefaults.standard.removeObject(forKey: CURRENT_LOCATION_KEY)
         }
     }
     
@@ -282,7 +304,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     
     public func reloadIfOnLogin(){
         let currentUrl = webView.url!.absoluteString
-        let homeUrl = url + "/loggedIn#/"
+        let homeUrl = url + LOGGED_IN
         
         if currentUrl.contains("login") || currentUrl == homeUrl  {
             if debugging {
@@ -291,5 +313,12 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
             
             webView.reload()
         }
+    }
+    
+    func updateCurrentLocation(url currentLocation: String) {
+        if debugging {
+            print("Update current location: \(currentLocation)")
+        }
+        UserDefaults.standard.set(currentLocation, forKey: CURRENT_LOCATION_KEY)
     }
 }
