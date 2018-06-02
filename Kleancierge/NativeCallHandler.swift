@@ -19,16 +19,17 @@ class NativeCallHandler: NSObject, WKScriptMessageHandler {
     let SAVE_LOCAL_NOTIFICATION = "savelocalnotfication"
     let REMOVE_LOCAL_NOTIFICATION = "removelocalnotification"
     let ROUTE_CHANGED = "routechanged"
+    let REQ_CURR_LOCATION = "requestcurrentlocation"
     
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         if let messageBody: NSDictionary = message.body as? NSDictionary {
             if let innerBody: NSDictionary = messageBody["body"] as? NSDictionary {
-                //print(innerBody); // debugging
-                
                 let type = innerBody["type"] as? String;
                 
                 if type == APPLOADED {
                     delegate?.appLoaded();
+                } else if type == REQ_CURR_LOCATION {
+                    delegate?.requestCurrentLocation();
                 } else if type == OPEN_CONTACTS {
                     delegate?.requestContactsAccess();
                 } else if type == SAVE_LOCAL_NOTIFICATION {
@@ -45,7 +46,7 @@ class NativeCallHandler: NSObject, WKScriptMessageHandler {
                 } else if type == REMOVE_LOCAL_NOTIFICATION {
                     LocalNotification.remove(cleaningReminderId: innerBody["cleaningReminderId"] as! Int)
                 } else if type == ROUTE_CHANGED {
-                    delegate?.updateCurrentLocation(url: innerBody["path"] as! String)
+                    delegate?.updateCurrentUrl(url: innerBody["path"] as! String)
                 } else {
                     print("unable to handle type: " + type!);
                 }

@@ -11,10 +11,11 @@ import WebKit
 import Contacts
 import ContactsUI
 import UserNotifications
+import CoreLocation
 
 // https://medium.com/@felicity.johnson.mail/web-view-tutorial-swift-3-0-4a5f4f6858d3
 
-class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, NativeCallHandlerDelegate, CNContactPickerDelegate, URLSessionDelegate {
+class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, NativeCallHandlerDelegate, CNContactPickerDelegate, URLSessionDelegate, CLLocationManagerDelegate {
     
     var ipAddress:String = ""
     var url: String = ""
@@ -22,7 +23,9 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     let LOGGED_IN: String = "/loggedIn#/"
     let SESSION_KEY: String = "SESSION"
     let COOKIE_CACHE_KEY: String = "cookieCache"
-    let CURRENT_LOCATION_KEY: String = "currentLocation"
+    let CURRENT_URL: String = "currentLocation"
+    
+    let manager = CLLocationManager()
     
     var webView: WKWebView!
     var initLoad = false
@@ -48,11 +51,14 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        manager.delegate = self
+        manager.requestWhenInUseAuthorization()
+        
         let refreshControl = UIRefreshControl()
         refreshControl.addTarget(self, action: #selector(didPullToRefresh), for: .valueChanged)
         
         // --- local device --- //
-        //ipAddress = "192.168.5.235"
+        //ipAddress = "10.0.0.188"
         //url = "http://" + ipAddress + ":8080"
         
         // --- production --- //
@@ -95,7 +101,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
                 }
             }
             
-            let currentLocation = UserDefaults.standard.value(forKey: CURRENT_LOCATION_KEY) as? String
+            let currentLocation = UserDefaults.standard.value(forKey: CURRENT_URL) as? String
             
             if cookieStr.contains(SESSION_KEY){
                 if currentLocation != nil {
@@ -138,7 +144,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         
         let response = navigationResponse.response as! HTTPURLResponse
         
-        UserDefaults.standard.set(response.url?.absoluteString, forKey: CURRENT_LOCATION_KEY)
+        UserDefaults.standard.set(response.url?.absoluteString, forKey: CURRENT_URL)
         
         if debugging {
             print("Response Code: \(String(describing: response.url?.absoluteString))")
@@ -212,7 +218,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
             print("!!! REMOVING ALL PERSISTENT USER INFO, INCLUDING SESSION & CURRENT LOCATION !!!")
             
             UserDefaults.standard.removeObject(forKey: COOKIE_CACHE_KEY)
-            UserDefaults.standard.removeObject(forKey: CURRENT_LOCATION_KEY)
+            UserDefaults.standard.removeObject(forKey: CURRENT_URL)
         }
     }
     
@@ -295,6 +301,21 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         handleSaveCustomers(selectedCustomers: customers);
     }
     
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        if let location = locations.first {
+            let lat = location.coordinate.latitude
+            let lng = location.coordinate.longitude
+            
+            print("Lat: \(lat), Lng: \(lng)")
+            
+            webView.evaluateJavaScript("storeUserCoords(\(lat), \(lng);", completionHandler: nil);
+        }
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("Failed to find user's location: \(error.localizedDescription)")
+    }
+    
     func handleSaveCustomers(selectedCustomers customers: [NSDictionary]){
         let data = try! JSONSerialization.data(withJSONObject: customers, options: [])
         let jsonString = String(data: data, encoding: String.Encoding.utf8)
@@ -315,10 +336,14 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         }
     }
     
-    func updateCurrentLocation(url currentLocation: String) {
+    func requestCurrentLocation() {
+        manager.requestLocation();
+    }
+    
+    func updateCurrentUrl(url currentUrl: String) {
         if debugging {
-            print("Update current location: \(currentLocation)")
+            print("Update current location: \(currentUrl)")
         }
-        UserDefaults.standard.set(currentLocation, forKey: CURRENT_LOCATION_KEY)
+        UserDefaults.standard.set(currentUrl, forKey: CURRENT_URL)
     }
 }
