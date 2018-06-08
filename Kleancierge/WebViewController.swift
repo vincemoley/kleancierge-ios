@@ -336,6 +336,10 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         }
     }
     
+    public func redirectFromWebsite(url redirectUrl: String){
+        self.webView.load(URLRequest(url: URL(string: url + redirectUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10))
+    }
+    
     func requestCurrentLocation() {
         manager.requestLocation();
     }

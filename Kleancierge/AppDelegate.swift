@@ -34,11 +34,22 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     }
     
     func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([Any]?) -> Void) -> Bool {
-        print("Continue User Activity called: ")
         if userActivity.activityType == NSUserActivityTypeBrowsingWeb {
             let url = userActivity.webpageURL!
-            print(url.absoluteString)
+            
+            if url.absoluteString.starts(with: "https://www.kleancierge.com") {
+                let webView = self.window?.rootViewController as! WebViewController
+                
+                var urlWithParam = url.path;
+                
+                if url.query != nil {
+                    urlWithParam += "?" + url.query!;
+                }
+                
+                webView.redirectFromWebsite(url: urlWithParam)
+            }
         }
+        
         return true
     }
 
