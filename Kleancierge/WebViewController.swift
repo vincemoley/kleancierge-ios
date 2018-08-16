@@ -16,6 +16,7 @@ import CoreLocation
 // https://medium.com/@felicity.johnson.mail/web-view-tutorial-swift-3-0-4a5f4f6858d3
 
 class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, NativeCallHandlerDelegate, CNContactPickerDelegate, URLSessionDelegate, CLLocationManagerDelegate {
+    var spinner = SpinnerViewController()
     
     var ipAddress:String = ""
     var url: String = ""
@@ -52,18 +53,17 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         super.viewDidLoad()
         
         manager.delegate = self
-        manager.requestWhenInUseAuthorization()
         
         let refreshControl = UIRefreshControl()
         refreshControl.addTarget(self, action: #selector(didPullToRefresh), for: .valueChanged)
         
         // --- local device --- //
-        //ipAddress = "10.0.0.188"
-        //url = "http://" + ipAddress + ":8080"
+        ipAddress = "172.20.10.3"
+        url = "http://" + ipAddress + ":8080"
         
         // --- production --- //
-        ipAddress = "app.kleancierge.com"
-        url = "https://" + ipAddress
+        //ipAddress = "app.kleancierge.com"
+        //url = "https://" + ipAddress
         
         // --- local - emulator --- //
         //url = "http://localhost:8080"
@@ -131,12 +131,26 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         }
     }
     
-    func webView(_ webView: WKWebView, didReceiveServerRedirectForProvisionalNavigation navigation: WKNavigation!) {
-        print("Received redirect to: \(webView.url!)")
+    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+        //print("login page req sent")
+        showSpinner()
+    }
+    
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        //print("login page req rec'd")
+        hideSpinner()
     }
     
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        //print("login page failed")
+        hideSpinner()
+        navigateToConnectivity()
+        
         print("Error Loading WebView: \(error)")
+    }
+    
+    func webView(_ webView: WKWebView, didReceiveServerRedirectForProvisionalNavigation navigation: WKNavigation!) {
+        print("Received redirect to: \(webView.url!)")
     }
     
     func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
@@ -214,12 +228,9 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
             store.removeData(ofTypes: cacheTypes, for: record){ }
         }
         
-        if false {
-            print("!!! REMOVING ALL PERSISTENT USER INFO, INCLUDING SESSION & CURRENT LOCATION !!!")
-            
-            UserDefaults.standard.removeObject(forKey: COOKIE_CACHE_KEY)
-            UserDefaults.standard.removeObject(forKey: CURRENT_URL)
-        }
+        //print("!!! REMOVING ALL PERSISTENT USER INFO, INCLUDING SESSION & CURRENT LOCATION !!!")
+        //UserDefaults.standard.removeObject(forKey: COOKIE_CACHE_KEY)
+        //UserDefaults.standard.removeObject(forKey: CURRENT_URL)
     }
     
     func appLoaded() {
@@ -302,13 +313,18 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     }
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        manager.stopUpdatingLocation();
+        
         if let location = locations.first {
-            let lat = location.coordinate.latitude
-            let lng = location.coordinate.longitude
+            let dict = [
+                "latitude": location.coordinate.latitude,
+                "longitude": location.coordinate.longitude
+            ];
             
-            print("Lat: \(lat), Lng: \(lng)")
+            let jsonData = try! JSONSerialization.data(withJSONObject: dict, options: [])
+            let jsonString = String(data: jsonData, encoding: String.Encoding.utf8)!
             
-            webView.evaluateJavaScript("storeUserCoords(\(lat), \(lng);", completionHandler: nil);
+            webView.evaluateJavaScript("storeUserCoords(\(jsonString))", completionHandler: nil);
         }
     }
     
@@ -341,7 +357,9 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     }
     
     func requestCurrentLocation() {
+        manager.requestWhenInUseAuthorization()
         manager.requestLocation();
+        manager.startUpdatingLocation();
     }
     
     func updateCurrentUrl(url currentUrl: String) {
@@ -349,5 +367,45 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
             print("Update current location: \(currentUrl)")
         }
         UserDefaults.standard.set(currentUrl, forKey: CURRENT_URL)
+    }
+    
+    func showSpinner(){
+        if childViewControllers.count == 0 {
+            addChildViewController(spinner)
+            
+            spinner.view.frame = view.frame
+            view.addSubview(spinner.view)
+            spinner.didMove(toParentViewController: self)
+        }
+    }
+    
+    func hideSpinner(){
+        if childViewControllers.count > 0 {
+            spinner.willMove(toParentViewController: nil)
+            spinner.view.removeFromSuperview()
+            spinner.removeFromParentViewController()
+        }
+    }
+    
+    func navigateToConnectivity(){
+        let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
+        let nextViewController = storyBoard.instantiateViewController(withIdentifier: "connectivityView")
+        self.present(nextViewController, animated:true, completion:nil)
+    }
+    
+    func requestSent() {
+        //print("req sent")
+        showSpinner()
+    }
+    
+    func requestTimeout() {
+        //print("req timeout")
+        hideSpinner()
+        navigateToConnectivity()
+    }
+    
+    func responseReceived() {
+        //print("resp rec'd")
+        hideSpinner()
     }
 }

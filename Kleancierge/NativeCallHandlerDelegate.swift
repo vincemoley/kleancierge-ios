@@ -20,4 +20,13 @@ public protocol NativeCallHandlerDelegate : NSObjectProtocol {
     
     @available(iOS 8.0, *)
     func requestCurrentLocation();
+    
+    @available(iOS 8.0, *)
+    func requestSent();
+    
+    @available(iOS 8.0, *)
+    func requestTimeout();
+    
+    @available(iOS 8.0, *)
+    func responseReceived();
 }

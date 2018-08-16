@@ -18,6 +18,8 @@
 		AC41A6471F9639260097C696 /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AC41A6461F9639260097C696 /* UserNotifications.framework */; };
 		ACDE56531FB601F6000C22FF /* Contacts.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ACDE56521FB601F6000C22FF /* Contacts.framework */; };
 		ACDE56551FB60C1B000C22FF /* Customer.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACDE56541FB60C1B000C22FF /* Customer.swift */; };
+		ACE5609F212364D400D0072A /* SpinnerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACE5609E212364D400D0072A /* SpinnerViewController.swift */; };
+		ACE560A121245BCC00D0072A /* ConnectivityViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACE560A021245BCC00D0072A /* ConnectivityViewController.swift */; };
 		ACFF39511FF5267A004E2611 /* LocalNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACFF39501FF5267A004E2611 /* LocalNotification.swift */; };
 /* End PBXBuildFile section */
 
@@ -36,6 +38,8 @@
 		AC41A6461F9639260097C696 /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
 		ACDE56521FB601F6000C22FF /* Contacts.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Contacts.framework; path = System/Library/Frameworks/Contacts.framework; sourceTree = SDKROOT; };
 		ACDE56541FB60C1B000C22FF /* Customer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Customer.swift; sourceTree = "<group>"; };
+		ACE5609E212364D400D0072A /* SpinnerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpinnerViewController.swift; sourceTree = "<group>"; };
+		ACE560A021245BCC00D0072A /* ConnectivityViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectivityViewController.swift; sourceTree = "<group>"; };
 		ACFF39501FF5267A004E2611 /* LocalNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNotification.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -78,12 +82,14 @@
 				AC41A62E1F96345C0097C696 /* Assets.xcassets */,
 				AC41A6331F96345C0097C696 /* Info.plist */,
 				AC41A63C1F9637670097C696 /* WebViewController.swift */,
+				ACE560A021245BCC00D0072A /* ConnectivityViewController.swift */,
 				AC41A63E1F9637D10097C696 /* NativeCallHandler.swift */,
 				AC41A6401F9638180097C696 /* NativeCallHandlerDelegate.swift */,
 				ACDE56541FB60C1B000C22FF /* Customer.swift */,
 				ACFF39501FF5267A004E2611 /* LocalNotification.swift */,
 				AC20D9A32010E765002EB337 /* Reminder.swift */,
 				AC10F7B9204DAF6A003A0D1D /* Launch Screen.storyboard */,
+				ACE5609E212364D400D0072A /* SpinnerViewController.swift */,
 			);
 			path = Kleancierge;
 			sourceTree = "<group>";
@@ -186,9 +192,11 @@
 				AC20D9A42010E765002EB337 /* Reminder.swift in Sources */,
 				ACDE56551FB60C1B000C22FF /* Customer.swift in Sources */,
 				ACFF39511FF5267A004E2611 /* LocalNotification.swift in Sources */,
+				ACE5609F212364D400D0072A /* SpinnerViewController.swift in Sources */,
 				AC41A6281F96345C0097C696 /* AppDelegate.swift in Sources */,
 				AC41A63F1F9637D10097C696 /* NativeCallHandler.swift in Sources */,
 				AC41A6411F9638180097C696 /* NativeCallHandlerDelegate.swift in Sources */,
+				ACE560A121245BCC00D0072A /* ConnectivityViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -323,7 +331,7 @@
 				CODE_SIGN_ENTITLEMENTS = Kleancierge/Kleancierge.entitlements;
 				DEVELOPMENT_TEAM = 4967SP76B7;
 				INFOPLIST_FILE = Kleancierge/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.kleancierge.Kleancierge;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -341,7 +349,7 @@
 				CODE_SIGN_ENTITLEMENTS = Kleancierge/Kleancierge.entitlements;
 				DEVELOPMENT_TEAM = 4967SP76B7;
 				INFOPLIST_FILE = Kleancierge/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.kleancierge.Kleancierge;
 				PRODUCT_NAME = "$(TARGET_NAME)";

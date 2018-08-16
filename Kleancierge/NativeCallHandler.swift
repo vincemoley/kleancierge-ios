@@ -20,6 +20,9 @@ class NativeCallHandler: NSObject, WKScriptMessageHandler {
     let REMOVE_LOCAL_NOTIFICATION = "removelocalnotification"
     let ROUTE_CHANGED = "routechanged"
     let REQ_CURR_LOCATION = "requestcurrentlocation"
+    let REQUEST_SENT = "requestsent"
+    let REQUEST_TIMEOUT = "requesttimeout"
+    let RESPONSE_RECEIVED = "responsereceived"
     
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         if let messageBody: NSDictionary = message.body as? NSDictionary {
@@ -47,6 +50,12 @@ class NativeCallHandler: NSObject, WKScriptMessageHandler {
                     LocalNotification.remove(cleaningReminderId: innerBody["cleaningReminderId"] as! Int)
                 } else if type == ROUTE_CHANGED {
                     delegate?.updateCurrentUrl(url: innerBody["path"] as! String)
+                } else if type == REQUEST_SENT {
+                    delegate?.requestSent()
+                } else if type == REQUEST_TIMEOUT {
+                    delegate?.requestTimeout()
+                } else if type == RESPONSE_RECEIVED {
+                    delegate?.responseReceived()
                 } else {
                     print("unable to handle type: " + type!);
                 }
