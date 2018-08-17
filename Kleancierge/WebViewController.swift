@@ -154,26 +154,30 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     }
     
     func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
-        var cookieDictionary = [String : AnyObject]()
-        
         let response = navigationResponse.response as! HTTPURLResponse
         
-        UserDefaults.standard.set(response.url?.absoluteString, forKey: CURRENT_URL)
-        
-        if debugging {
-            print("Response Code: \(String(describing: response.url?.absoluteString))")
-            print("Response Code: \(response.statusCode)")
-        }
-        
-        WKWebsiteDataStore.default().httpCookieStore.getAllCookies { (cookies) in
-            cookies.forEach({ (cookie) in
-                if self.debugging {
-                    print("Response Cookie: \(cookie)")
-                }
-                cookieDictionary[cookie.name] = cookie.properties as AnyObject?
-            })
+        if response.statusCode != 200 {
+            navigateToConnectivity()
+        } else {
+            var cookieDictionary = [String : AnyObject]()
             
-            UserDefaults.standard.set(cookieDictionary, forKey: self.COOKIE_CACHE_KEY)
+            UserDefaults.standard.set(response.url?.absoluteString, forKey: CURRENT_URL)
+            
+            if debugging {
+                print("Response Code: \(String(describing: response.url?.absoluteString))")
+                print("Response Code: \(response.statusCode)")
+            }
+            
+            WKWebsiteDataStore.default().httpCookieStore.getAllCookies { (cookies) in
+                cookies.forEach({ (cookie) in
+                    if self.debugging {
+                        print("Response Cookie: \(cookie)")
+                    }
+                    cookieDictionary[cookie.name] = cookie.properties as AnyObject?
+                })
+                
+                UserDefaults.standard.set(cookieDictionary, forKey: self.COOKIE_CACHE_KEY)
+            }
         }
         
         decisionHandler(WKNavigationResponsePolicy.allow);
