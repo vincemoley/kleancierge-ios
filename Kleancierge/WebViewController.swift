@@ -58,12 +58,12 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         refreshControl.addTarget(self, action: #selector(didPullToRefresh), for: .valueChanged)
         
         // --- local device --- //
-        ipAddress = "172.20.10.3"
-        url = "http://" + ipAddress + ":8080"
+        //ipAddress = "172.20.10.3"
+        //url = "http://" + ipAddress + ":8080"
         
         // --- production --- //
-        //ipAddress = "app.kleancierge.com"
-        //url = "https://" + ipAddress
+        ipAddress = "app.kleancierge.com"
+        url = "https://" + ipAddress
         
         // --- local - emulator --- //
         //url = "http://localhost:8080"
@@ -271,7 +271,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     }
     
     func openContacts(){
-        let contactPicker = CNContactPickerViewController.init();
+        let contactPicker = CNContactPickerViewController();
         
         contactPicker.delegate = self;
         
