@@ -23,6 +23,7 @@ class NativeCallHandler: NSObject, WKScriptMessageHandler {
     let REQUEST_SENT = "requestsent"
     let REQUEST_TIMEOUT = "requesttimeout"
     let RESPONSE_RECEIVED = "responsereceived"
+    let APP_VERSION = "appversion"
     
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         if let messageBody: NSDictionary = message.body as? NSDictionary {
@@ -56,6 +57,8 @@ class NativeCallHandler: NSObject, WKScriptMessageHandler {
                     delegate?.requestTimeout(url: innerBody["url"] as! String)
                 } else if type == RESPONSE_RECEIVED {
                     delegate?.responseReceived()
+                } else if type == APP_VERSION {
+                    delegate?.appVersion(version: innerBody["version"] as! String)
                 } else {
                     print("unable to handle type: " + type!);
                 }

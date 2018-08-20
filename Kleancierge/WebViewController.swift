@@ -25,6 +25,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     let SESSION_KEY: String = "SESSION"
     let COOKIE_CACHE_KEY: String = "cookieCache"
     let CURRENT_URL: String = "currentLocation"
+    let CURRENT_WEBAPP_VERSION = "currentwebappversion"
     let MAX_TIMEOUT = 60.0 // seconds
     
     let manager = CLLocationManager()
@@ -60,15 +61,15 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         refreshControl.addTarget(self, action: #selector(didPullToRefresh), for: .valueChanged)
         
         // --- local device --- //
-        //ipAddress = "10.0.0.188"
+        //ipAddress = "192.168.5.115"
         //url = "http://" + ipAddress + ":8080"
         
         // --- production --- //
-        ipAddress = "app.kleancierge.com"
-        url = "https://" + ipAddress
+        //ipAddress = "app.kleancierge.com"
+        //url = "https://" + ipAddress
         
         // --- local - emulator --- //
-        //url = "http://localhost:8080"
+        url = "http://localhost:8080"
         
         let statusBarHeight = UIApplication.shared.statusBarFrame.height
     
@@ -83,8 +84,6 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         
         view.addSubview(webView);
         view.sendSubview(toBack: webView);
-        
-        //bustCache()
         
         if let cookieDictionary = UserDefaults.standard.dictionary(forKey: COOKIE_CACHE_KEY) {
             for (key, cookieProperties) in cookieDictionary {
@@ -213,16 +212,21 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         
         sender.endRefreshing()
         
-        loadWebView(cookieStr: "")
+        webView.reload()
     }
     
     func bustCache() {
-        let cacheTypes = Set<String>([WKWebsiteDataTypeDiskCache, WKWebsiteDataTypeMemoryCache])
-        let store = WKWebsiteDataStore.default()
+        // clear cache
+        URLCache.shared.removeAllCachedResponses()
+        URLCache.shared.diskCapacity = 0
+        URLCache.shared.memoryCapacity = 0
         
-        store.fetchDataRecords(ofTypes: cacheTypes) { (record) in
-            store.removeData(ofTypes: cacheTypes, for: record){ }
-        }
+        //let cacheTypes = Set<String>([WKWebsiteDataTypeDiskCache, WKWebsiteDataTypeMemoryCache])
+        //let store = WKWebsiteDataStore.default()
+        
+        //store.fetchDataRecords(ofTypes: cacheTypes) { (record) in
+        //    store.removeData(ofTypes: cacheTypes, for: record){ }
+        //}
         
         //print("!!! REMOVING ALL PERSISTENT USER INFO, INCLUDING SESSION & CURRENT LOCATION !!!")
         //UserDefaults.standard.removeObject(forKey: COOKIE_CACHE_KEY)
@@ -335,22 +339,24 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         webView.evaluateJavaScript("saveCustomersFromIPhone(" + jsonString! + ", 'ios');", completionHandler: nil);
     }
     
-    public func reloadIfOnLogin(){
-        /*
+    public func determineIfReloadNeeded(){
         let currentUrl = webView.url?.absoluteString ?? ""
-        let homeUrl = url + LOGGED_IN
         
-        if currentUrl != "" && (currentUrl.contains("login") || currentUrl == homeUrl) {
+        if currentUrl.contains("login") {
+            bustCache()
+            
             if debugging {
                 print("Reloading webview b/c on login or home page")
             }
             
-            loadWebView(cookieStr: "")
+            self.webView.reload()
+        } else {
+            webView.evaluateJavaScript("getAppVersion();", completionHandler: nil);
         }
-        */
     }
     
     public func redirectFromWebsite(url redirectUrl: String){
+        bustCache()
         self.webView.load(URLRequest(url: URL(string: url + redirectUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: MAX_TIMEOUT))
     }
     
@@ -368,6 +374,8 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     }
     
     func loadWebView(cookieStr: String){
+        bustCache()
+        
         var currentLocation = UserDefaults.standard.value(forKey: CURRENT_URL) as? String
         
         if currentLocation == nil || !currentLocation!.contains(ipAddress){
@@ -447,5 +455,26 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
             print("resp rec'd")
         }
         hideSpinner()
+    }
+    
+    func appVersion(version: String) {
+        let currentUrl = webView.url?.absoluteString ?? ""
+        let homeUrl = url + LOGGED_IN
+        let lastVersion = UserDefaults.standard.value(forKey: CURRENT_WEBAPP_VERSION) as? String ?? ""
+        
+        if lastVersion != version {
+            if debugging {
+                print("version changed reload webview")
+            }
+            bustCache()
+            self.webView.reload()
+        } else if currentUrl == homeUrl {
+            if debugging {
+                print("on homepage reload route")
+            }
+            webView.evaluateJavaScript("reloadRoute();", completionHandler: nil);
+        }
+        
+        UserDefaults.standard.set(version, forKey: CURRENT_WEBAPP_VERSION)
     }
 }

@@ -59,7 +59,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         if self.window?.rootViewController is WebViewController {
             let webView = self.window?.rootViewController as! WebViewController
             
-            webView.reloadIfOnLogin();
+            webView.determineIfReloadNeeded();
         }
         
         UIApplication.shared.applicationIconBadgeNumber = 0;

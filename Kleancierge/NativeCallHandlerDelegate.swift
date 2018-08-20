@@ -29,4 +29,7 @@ public protocol NativeCallHandlerDelegate : NSObjectProtocol {
     
     @available(iOS 8.0, *)
     func responseReceived();
+    
+    @available(iOS 8.0, *)
+    func appVersion(version: String);
 }
