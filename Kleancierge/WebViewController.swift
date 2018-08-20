@@ -25,12 +25,14 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     let SESSION_KEY: String = "SESSION"
     let COOKIE_CACHE_KEY: String = "cookieCache"
     let CURRENT_URL: String = "currentLocation"
+    let MAX_TIMEOUT = 60.0 // seconds
     
     let manager = CLLocationManager()
     
     var webView: WKWebView!
-    var initLoad = false
     var debugging = false
+    var debugLoadWebView = false
+    var debugResponse = false
     
     var webConfig: WKWebViewConfiguration {
         get {
@@ -58,7 +60,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         refreshControl.addTarget(self, action: #selector(didPullToRefresh), for: .valueChanged)
         
         // --- local device --- //
-        //ipAddress = "172.20.10.3"
+        //ipAddress = "10.0.0.188"
         //url = "http://" + ipAddress + ":8080"
         
         // --- production --- //
@@ -67,8 +69,6 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         
         // --- local - emulator --- //
         //url = "http://localhost:8080"
-        
-        initLoad = true
         
         let statusBarHeight = UIApplication.shared.statusBarFrame.height
     
@@ -84,67 +84,55 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         view.addSubview(webView);
         view.sendSubview(toBack: webView);
         
-        var initialUrl = url
-        
-        bustCache()
+        //bustCache()
         
         if let cookieDictionary = UserDefaults.standard.dictionary(forKey: COOKIE_CACHE_KEY) {
-            var cookieStr = "";
-            
             for (key, cookieProperties) in cookieDictionary {
                 if let cookie = HTTPCookie(properties: cookieProperties as! [HTTPCookiePropertyKey : Any]){
                     if cookie.domain == ipAddress && key == SESSION_KEY {
-                        cookieStr += "\(key)=\(cookie.value)"
+                        WKWebsiteDataStore.default().httpCookieStore.setCookie(cookie){
+                            self.loadWebView(cookieStr: "\(key)=\(cookie.value)")
+                        }
+                    } else {
+                        UserDefaults.standard.removeObject(forKey: COOKIE_CACHE_KEY)
                         
-                        WKWebsiteDataStore.default().httpCookieStore.setCookie(cookie, completionHandler: nil)
+                        self.loadWebView(cookieStr: "")
                     }
-                }
-            }
-            
-            let currentLocation = UserDefaults.standard.value(forKey: CURRENT_URL) as? String
-            
-            if cookieStr.contains(SESSION_KEY){
-                if currentLocation != nil {
-                    initialUrl = currentLocation!
                 } else {
-                    initialUrl += LOGGED_IN
+                    self.loadWebView(cookieStr: "")
                 }
-                
-                var request = URLRequest(url: URL(string: initialUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10)
-                
-                if debugging {
-                    print("Using UserDefaults Cookie: \(cookieStr)")
-                }
-                
-                request.addValue(cookieStr, forHTTPHeaderField: "cookie")
-                
-                self.webView.load(request)
-            } else {
-                initialUrl += LOGIN
-                
-                self.webView.load(URLRequest(url: URL(string: initialUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10))
             }
         } else {
-            initialUrl += LOGIN
-            
-            self.webView.load(URLRequest(url: URL(string: initialUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10))
+            self.loadWebView(cookieStr: "")
         }
     }
     
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-        //print("login page req sent")
+        if debugging {
+            print("\(webView.url!.absoluteString) page req sent")
+        }
         showSpinner()
     }
-    
+
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        //print("login page req rec'd")
+        if debugging {
+            print("\(webView.url!.absoluteString) page req rec'd")
+        }
         hideSpinner()
     }
-    
+
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-        //print("login page failed")
+        let webViewUrl = webView.url?.absoluteString ?? "No URL";
+        
+        if debugging {
+            print("\(webViewUrl) page failed")
+        }
+        
         hideSpinner()
-        navigateToConnectivity()
+        
+        if error.localizedDescription.contains("Could not connect to the server") {
+            navigateToConnectivity(url: webViewUrl, origin: "webview navigation failed")
+        }
         
         print("Error Loading WebView: \(error)")
     }
@@ -155,22 +143,26 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     
     func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
         let response = navigationResponse.response as! HTTPURLResponse
-        
+         
         if response.statusCode != 200 {
-            navigateToConnectivity()
-        } else {
-            var cookieDictionary = [String : AnyObject]()
+            if debugResponse {
+                print("response rec'd but NOT 200")
+            }
             
+            navigateToConnectivity(url: response.url!.absoluteString, origin: "webview response")
+        } else {
             UserDefaults.standard.set(response.url?.absoluteString, forKey: CURRENT_URL)
             
-            if debugging {
+            var cookieDictionary = [String : AnyObject]()
+            
+            if debugResponse {
                 print("Response Code: \(String(describing: response.url?.absoluteString))")
                 print("Response Code: \(response.statusCode)")
             }
             
             WKWebsiteDataStore.default().httpCookieStore.getAllCookies { (cookies) in
                 cookies.forEach({ (cookie) in
-                    if self.debugging {
+                    if self.debugResponse {
                         print("Response Cookie: \(cookie)")
                     }
                     cookieDictionary[cookie.name] = cookie.properties as AnyObject?
@@ -219,9 +211,9 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         
         bustCache()
         
-        webView.reload()
-        
         sender.endRefreshing()
+        
+        loadWebView(cookieStr: "")
     }
     
     func bustCache() {
@@ -344,20 +336,22 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     }
     
     public func reloadIfOnLogin(){
-        let currentUrl = webView.url!.absoluteString
+        /*
+        let currentUrl = webView.url?.absoluteString ?? ""
         let homeUrl = url + LOGGED_IN
         
-        if currentUrl.contains("login") || currentUrl == homeUrl  {
+        if currentUrl != "" && (currentUrl.contains("login") || currentUrl == homeUrl) {
             if debugging {
                 print("Reloading webview b/c on login or home page")
             }
             
-            webView.reload()
+            loadWebView(cookieStr: "")
         }
+        */
     }
     
     public func redirectFromWebsite(url redirectUrl: String){
-        self.webView.load(URLRequest(url: URL(string: url + redirectUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10))
+        self.webView.load(URLRequest(url: URL(string: url + redirectUrl)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: MAX_TIMEOUT))
     }
     
     func requestCurrentLocation() {
@@ -373,11 +367,33 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         UserDefaults.standard.set(currentUrl, forKey: CURRENT_URL)
     }
     
+    func loadWebView(cookieStr: String){
+        var currentLocation = UserDefaults.standard.value(forKey: CURRENT_URL) as? String
+        
+        if currentLocation == nil || !currentLocation!.contains(ipAddress){
+            currentLocation = url + LOGGED_IN;
+        }
+        
+        if debugLoadWebView {
+            print("Load Web View: \(currentLocation!)")
+        }
+        
+        var request = URLRequest(url: URL(string: currentLocation!)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: MAX_TIMEOUT)
+        
+        if cookieStr != "" {
+            if debugLoadWebView {
+                print("Using UserDefaults Cookie: \(cookieStr)")
+            }
+            request.addValue(cookieStr, forHTTPHeaderField: "cookie")
+        }
+        
+        self.webView.load(request)
+    }
+    
     func showSpinner(){
         if childViewControllers.count == 0 {
+            spinner.willMove(toParentViewController: self)
             addChildViewController(spinner)
-            
-            spinner.view.frame = view.frame
             view.addSubview(spinner.view)
             spinner.didMove(toParentViewController: self)
         }
@@ -385,31 +401,51 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     
     func hideSpinner(){
         if childViewControllers.count > 0 {
+            spinner.removeFromParentViewController()
             spinner.willMove(toParentViewController: nil)
             spinner.view.removeFromSuperview()
-            spinner.removeFromParentViewController()
         }
     }
     
-    func navigateToConnectivity(){
-        let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
-        let nextViewController = storyBoard.instantiateViewController(withIdentifier: "connectivityView")
-        self.present(nextViewController, animated:true, completion:nil)
+    func navigateToConnectivity(url: String, origin: String){
+        if presentedViewController == nil {
+            let alert = UIAlertController(title: "Unable to connect to Kleancierge", message: "Due to connectivity issues the app is unable to connect to Kleancierge\r\r" + url + "\r\r" + origin, preferredStyle: UIAlertControllerStyle.alert)
+            
+            alert.addAction(UIAlertAction(title: "Attempt To Reconnect", style: .cancel, handler: { (action: UIAlertAction!) in
+                self.loadWebView(cookieStr: "")
+            }))
+            
+            present(alert, animated: true, completion: nil)
+
+            /*
+            // This solution does not work b/c it causes the request, event w/ the session cookie, to be denied and redirected to login
+            let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
+            let nextViewController = storyBoard.instantiateViewController(withIdentifier: "connectivityView")
+            
+            present(nextViewController, animated:true, completion:nil)
+            */
+        }
     }
     
-    func requestSent() {
-        //print("req sent")
+    func requestSent(url: String) {
+        if debugging {
+            print("req sent " + url)
+        }
         showSpinner()
     }
     
-    func requestTimeout() {
-        //print("req timeout")
+    func requestTimeout(url: String) {
+        if debugging {
+            print("req timeout" + url)
+        }
         hideSpinner()
-        navigateToConnectivity()
+        navigateToConnectivity(url: url, origin: "webapp timeout")
     }
     
     func responseReceived() {
-        //print("resp rec'd")
+        if debugging {
+            print("resp rec'd")
+        }
         hideSpinner()
     }
 }

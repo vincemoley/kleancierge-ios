@@ -22,10 +22,10 @@ public protocol NativeCallHandlerDelegate : NSObjectProtocol {
     func requestCurrentLocation();
     
     @available(iOS 8.0, *)
-    func requestSent();
+    func requestSent(url: String);
     
     @available(iOS 8.0, *)
-    func requestTimeout();
+    func requestTimeout(url: String);
     
     @available(iOS 8.0, *)
     func responseReceived();

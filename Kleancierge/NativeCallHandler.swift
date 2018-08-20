@@ -51,9 +51,9 @@ class NativeCallHandler: NSObject, WKScriptMessageHandler {
                 } else if type == ROUTE_CHANGED {
                     delegate?.updateCurrentUrl(url: innerBody["path"] as! String)
                 } else if type == REQUEST_SENT {
-                    delegate?.requestSent()
+                    delegate?.requestSent(url: innerBody["url"] as! String)
                 } else if type == REQUEST_TIMEOUT {
-                    delegate?.requestTimeout()
+                    delegate?.requestTimeout(url: innerBody["url"] as! String)
                 } else if type == RESPONSE_RECEIVED {
                     delegate?.responseReceived()
                 } else {
