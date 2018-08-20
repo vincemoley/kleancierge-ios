@@ -65,11 +65,11 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         //url = "http://" + ipAddress + ":8080"
         
         // --- production --- //
-        //ipAddress = "app.kleancierge.com"
-        //url = "https://" + ipAddress
+        ipAddress = "app.kleancierge.com"
+        url = "https://" + ipAddress
         
         // --- local - emulator --- //
-        url = "http://localhost:8080"
+        //url = "http://localhost:8080"
         
         let statusBarHeight = UIApplication.shared.statusBarFrame.height
     
@@ -417,7 +417,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     
     func navigateToConnectivity(url: String, origin: String){
         if presentedViewController == nil {
-            let alert = UIAlertController(title: "Unable to connect to Kleancierge", message: "Due to connectivity issues the app is unable to connect to Kleancierge\r\r" + url + "\r\r" + origin, preferredStyle: UIAlertControllerStyle.alert)
+            let alert = UIAlertController(title: "Unable to connect to Kleancierge", message: "Due to connectivity issues the app is unable to connect to Kleancierge", preferredStyle: UIAlertControllerStyle.alert)
             
             alert.addAction(UIAlertAction(title: "Attempt To Reconnect", style: .cancel, handler: { (action: UIAlertAction!) in
                 self.loadWebView(cookieStr: "")
