@@ -16,7 +16,7 @@ import CoreLocation
 // https://medium.com/@felicity.johnson.mail/web-view-tutorial-swift-3-0-4a5f4f6858d3
 
 class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, NativeCallHandlerDelegate, CNContactPickerDelegate, URLSessionDelegate, CLLocationManagerDelegate {
-    var spinner = SpinnerViewController()
+    var spinner = UIActivityIndicatorView(activityIndicatorStyle: UIActivityIndicatorViewStyle.gray)
     
     var ipAddress:String = ""
     var url: String = ""
@@ -26,7 +26,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     let COOKIE_CACHE_KEY: String = "cookieCache"
     let CURRENT_URL: String = "currentLocation"
     let CURRENT_WEBAPP_VERSION = "currentwebappversion"
-    let MAX_TIMEOUT = 60.0 // seconds
+    let MAX_TIMEOUT = 30.0 // seconds
     
     let manager = CLLocationManager()
     
@@ -54,6 +54,13 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        spinner.center = self.view.center;
+        spinner.hidesWhenStopped = true;
+        spinner.activityIndicatorViewStyle = UIActivityIndicatorViewStyle.gray;
+        spinner.transform = CGAffineTransform(scaleX: 2, y: 2);
+        
+        view.addSubview(spinner);
         
         manager.delegate = self
         
@@ -399,20 +406,13 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
     }
     
     func showSpinner(){
-        if childViewControllers.count == 0 {
-            spinner.willMove(toParentViewController: self)
-            addChildViewController(spinner)
-            view.addSubview(spinner.view)
-            spinner.didMove(toParentViewController: self)
-        }
+        UIApplication.shared.beginIgnoringInteractionEvents();
+        spinner.startAnimating();
     }
     
     func hideSpinner(){
-        if childViewControllers.count > 0 {
-            spinner.removeFromParentViewController()
-            spinner.willMove(toParentViewController: nil)
-            spinner.view.removeFromSuperview()
-        }
+        UIApplication.shared.endIgnoringInteractionEvents();
+        spinner.stopAnimating()
     }
     
     func navigateToConnectivity(url: String, origin: String){
