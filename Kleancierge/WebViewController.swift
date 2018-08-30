@@ -68,7 +68,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         refreshControl.addTarget(self, action: #selector(didPullToRefresh), for: .valueChanged)
         
         // --- local device --- //
-        //ipAddress = "192.168.5.115"
+        //ipAddress = "192.168.5.214"
         //url = "http://" + ipAddress + ":8080"
         
         // --- production --- //
@@ -101,8 +101,6 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
                         }
                     } else {
                         UserDefaults.standard.removeObject(forKey: COOKIE_CACHE_KEY)
-                        
-                        self.loadWebView(cookieStr: "")
                     }
                 } else {
                     self.loadWebView(cookieStr: "")
@@ -157,14 +155,18 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
             
             navigateToConnectivity(url: response.url!.absoluteString, origin: "webview response")
         } else {
-            UserDefaults.standard.set(response.url?.absoluteString, forKey: CURRENT_URL)
-            
-            var cookieDictionary = [String : AnyObject]()
+            let responseUrl = response.url?.absoluteString ?? "NO URL"
             
             if debugResponse {
-                print("Response Code: \(String(describing: response.url?.absoluteString))")
+                print("Response URL: \(responseUrl)")
                 print("Response Code: \(response.statusCode)")
             }
+            
+            if responseUrl.starts(with: ipAddress) {
+                UserDefaults.standard.set(response.url?.absoluteString, forKey: CURRENT_URL)
+            }
+            
+            var cookieDictionary = [String : AnyObject]()
             
             WKWebsiteDataStore.default().httpCookieStore.getAllCookies { (cookies) in
                 cookies.forEach({ (cookie) in
@@ -385,7 +387,7 @@ class WebViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, N
         
         var currentLocation = UserDefaults.standard.value(forKey: CURRENT_URL) as? String
         
-        if currentLocation == nil || !currentLocation!.contains(ipAddress){
+        if currentLocation == nil || !currentLocation!.starts(with: ipAddress){
             currentLocation = url + LOGGED_IN;
         }
         
