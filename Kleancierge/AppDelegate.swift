@@ -72,16 +72,25 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     func registerForRemoteNotification() {
         if #available(iOS 10.0, *) {
             let center  = UNUserNotificationCenter.current();
+            
             center.delegate = self;
-            center.requestAuthorization(options: [.sound, .alert, .badge]) { (granted, error) in
-                if error == nil {
-                    DispatchQueue.main.async {
-                        UIApplication.shared.registerForRemoteNotifications();
+            
+            center.getNotificationSettings(completionHandler: { settings in
+                switch settings.authorizationStatus {
+                case .denied,.notDetermined:
+                    center.requestAuthorization(options: [.sound, .alert, .badge]) { (granted, error) in
+                        if error == nil {
+                            DispatchQueue.main.async {
+                                UIApplication.shared.registerForRemoteNotifications();
+                            }
+                        }
                     }
+                case .authorized:
+                    break;
                 }
-            }
+            });
         }
-        else {
+        else if !UIApplication.shared.isRegisteredForRemoteNotifications {
             UIApplication.shared.registerUserNotificationSettings(UIUserNotificationSettings(types: [.sound, .alert, .badge], categories: nil));
             UIApplication.shared.registerForRemoteNotifications();
         }
@@ -118,11 +127,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         var token = ""
+        
         for i in 0..<deviceToken.count {
             token = token + String(format: "%02.2hhx", arguments: [deviceToken[i]])
         }
-        
-        //print("Device Token:", token);
         
         let wvc = window?.rootViewController as? WebViewController;
         
